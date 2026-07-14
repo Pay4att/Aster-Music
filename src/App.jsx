@@ -18,7 +18,7 @@ const albums = [
     artist: "Sora Lin",
     genre: "Alternative Pop",
     image: "/assets/blue-hour-hero.jpg",
-    description: "在清澈的建筑回声里，把黄昏留得更久一点。",
+    description: "在清澈的建筑回声里，把黄昏留得更久一点",
   },
   {
     id: "crystal-garden",
@@ -26,7 +26,7 @@ const albums = [
     artist: "Ava Miro",
     genre: "Dream Pop",
     image: "/assets/crystal-flower-cover.jpg",
-    description: "闪烁的合成器，像深夜里刚刚盛开的花。",
+    description: "闪烁的合成器，像深夜里刚刚盛开的花",
   },
   {
     id: "ember-afternoons",
@@ -34,7 +34,7 @@ const albums = [
     artist: "Cian Vale",
     genre: "Ambient Folk",
     image: "/assets/ember-dunes-cover.jpg",
-    description: "温热的砂砾、慢拍鼓点，和漫长的无所事事。",
+    description: "温热的砂砾、慢拍鼓点，和漫长的无所事事",
   },
   {
     id: "moon-letter",
@@ -42,7 +42,7 @@ const albums = [
     artist: "Darius Moon",
     genre: "Soul Electronica",
     image: "/assets/moonlight-portrait-cover.jpg",
-    description: "为深夜写下的一封蓝色来信。",
+    description: "为深夜写下的一封蓝色来信",
   },
 ];
 
@@ -169,8 +169,8 @@ function HomePage() {
   return (
     <>
       <section className="intro" id="top">
-        <h1>今天，听点新的。</h1>
-        <p>为你挑选的声音，刚好适合此刻。</p>
+        <h1>今天，听点新的</h1>
+        <p>为你挑选的声音，刚好适合此刻</p>
         <div className="intro-actions">
           <RouteLink className="button button-primary" to="/now-playing?track=blue-hour">开始播放</RouteLink>
           <RouteLink className="button button-secondary" to="/playlists">查看歌单</RouteLink>
@@ -217,8 +217,8 @@ function PageIntro({ eyebrow, title, children }) {
 function NewReleasesPage() {
   return (
     <main className="inner-page">
-      <PageIntro eyebrow="本周精选" title="新歌，先听为快。">
-        <span>刚刚抵达的声音，已经为你排好队。</span>
+      <PageIntro eyebrow="本周精选" title="新歌，先听为快">
+        <span>刚刚抵达的声音，已经为你排好队</span>
       </PageIntro>
       <section className="editorial-grid" aria-label="新发行专辑">
         {albums.map((album, index) => (
@@ -235,8 +235,8 @@ function NewReleasesPage() {
 function MoodsPage() {
   return (
     <main className="inner-page">
-      <PageIntro eyebrow="按此刻选择" title="给耳朵，换个世界。">
-        <span>选择一种心情，Aster 会从第一首开始陪你走。</span>
+      <PageIntro eyebrow="按此刻选择" title="给耳朵，换个世界">
+        <span>选择一种心情，Aster 会从第一首开始陪你走</span>
       </PageIntro>
       <section className="mood-grid" aria-label="心情歌单">
         {moods.map((mood) => (
@@ -253,8 +253,8 @@ function MoodsPage() {
 function LibraryPage() {
   return (
     <main className="inner-page">
-      <PageIntro eyebrow="你的收藏" title="陪你久一点的音乐。">
-        <span>你保存的专辑、歌单和最近播放都在这里。</span>
+      <PageIntro eyebrow="你的收藏" title="陪你久一点的音乐">
+        <span>你保存的专辑、歌单和最近播放都在这里</span>
       </PageIntro>
       <section className="library-layout">
         <div className="library-stat"><Clock aria-hidden="true" size={26} /><strong>42</strong><span>最近播放</span></div>
@@ -293,7 +293,7 @@ function SearchPage({ search }) {
       <div className="album-grid search-results">
         {results.map((album) => <AlbumCard album={album} key={album.id} compact />)}
       </div>
-      {normalized && results.length === 0 && <p className="empty-state">没有匹配的结果。试试搜索 “Sora” 或 “Moon”。</p>}
+      {normalized && results.length === 0 && <p className="empty-state">没有匹配的结果试试搜索 “Sora” 或 “Moon”</p>}
     </main>
   );
 }
@@ -337,8 +337,8 @@ function TrackList({ album }) {
 function PlaylistsPage() {
   return (
     <main className="inner-page">
-      <PageIntro eyebrow="为你编排" title="从第一首开始，刚刚好。">
-        <span>每张歌单都可以继续往下走。</span>
+      <PageIntro eyebrow="为你编排" title="从第一首开始，刚刚好">
+        <span>每张歌单都可以继续往下走</span>
       </PageIntro>
       <section className="playlist-grid">
         {moods.map((mood) => (
@@ -387,7 +387,7 @@ function NowPlayingPage({ search }) {
 function ProfilePage() {
   return (
     <main className="inner-page profile-page">
-      <section className="profile-hero"><UserCircle size={92} weight="thin" /><p>晚上好，</p><h1>Alex。</h1><span>你的下一段声音旅程，已经准备好了。</span></section>
+      <section className="profile-hero"><UserCircle size={92} weight="thin" /><p>晚上好，</p><h1>Alex</h1><span>你的下一段声音旅程，已经准备好了</span></section>
       <div className="profile-links">
         <RouteLink to="/library"><Queue size={25} /><span><strong>我的音乐库</strong><small>收藏与最近播放</small></span><CaretRight size={21} /></RouteLink>
         <RouteLink to="/settings"><GearSix size={25} /><span><strong>偏好设置</strong><small>声音、动态效果与帐户</small></span><CaretRight size={21} /></RouteLink>
@@ -400,7 +400,7 @@ function SettingsPage() {
   return (
     <main className="inner-page settings-page">
       <RouteLink className="back-link" to="/profile"><ArrowLeft size={19} /> 个人资料</RouteLink>
-      <PageIntro eyebrow="偏好设置" title="把 Aster 调成你的样子。" />
+      <PageIntro eyebrow="偏好设置" title="把 Aster 调成你的样子" />
       <section className="settings-list">
         <RouteLink to="/moods"><span><strong>心情偏好</strong><small>更新推荐的情绪方向</small></span><CaretRight size={21} /></RouteLink>
         <RouteLink to="/playlists"><span><strong>自动播放</strong><small>选择新的接续方式</small></span><CaretRight size={21} /></RouteLink>
@@ -411,7 +411,7 @@ function SettingsPage() {
 }
 
 function NotFoundPage() {
-  return <main className="not-found"><p>404</p><h1>这里还没有音乐。</h1><RouteLink className="button button-primary" to="/">回到发现</RouteLink></main>;
+  return <main className="not-found"><p>404</p><h1>这里还没有音乐</h1><RouteLink className="button button-primary" to="/">回到发现</RouteLink></main>;
 }
 
 export function App() {
