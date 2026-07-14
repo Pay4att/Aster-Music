@@ -1,10 +1,9 @@
 node_modules/
-.openai/
 dist/
 .npm-cache/
 prototype-*.png
 design-qa-comparison-*.png
 public/qa-compare.html
 public/qa-reference.png
-.openai
-dist
+.openai/
+dist/
