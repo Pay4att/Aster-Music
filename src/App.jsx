@@ -17,7 +17,7 @@ const albums = [
     title: "BLUE HOUR",
     artist: "Sora Lin",
     genre: "Alternative Pop",
-    image: "/assets/blue-hour-hero.png",
+    image: "/assets/blue-hour-hero.jpg",
     description: "在清澈的建筑回声里，把黄昏留得更久一点。",
   },
   {
@@ -25,7 +25,7 @@ const albums = [
     title: "水晶花园",
     artist: "Ava Miro",
     genre: "Dream Pop",
-    image: "/assets/crystal-flower-cover.png",
+    image: "/assets/crystal-flower-cover.jpg",
     description: "闪烁的合成器，像深夜里刚刚盛开的花。",
   },
   {
@@ -33,7 +33,7 @@ const albums = [
     title: "火星午后",
     artist: "Cian Vale",
     genre: "Ambient Folk",
-    image: "/assets/ember-dunes-cover.png",
+    image: "/assets/ember-dunes-cover.jpg",
     description: "温热的砂砾、慢拍鼓点，和漫长的无所事事。",
   },
   {
@@ -41,7 +41,7 @@ const albums = [
     title: "月球来信",
     artist: "Darius Moon",
     genre: "Soul Electronica",
-    image: "/assets/moonlight-portrait-cover.png",
+    image: "/assets/moonlight-portrait-cover.jpg",
     description: "为深夜写下的一封蓝色来信。",
   },
 ];
