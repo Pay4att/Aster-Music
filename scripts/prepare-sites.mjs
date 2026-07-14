@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
 
 const worker = `export default {
   async fetch(request, env) {
@@ -10,4 +10,9 @@ const worker = `export default {
 `;
 
 await mkdir(new URL("../dist/server/", import.meta.url), { recursive: true });
+await mkdir(new URL("../dist/.openai/", import.meta.url), { recursive: true });
 await writeFile(new URL("../dist/server/index.js", import.meta.url), worker);
+await copyFile(
+  new URL("../.openai/hosting.json", import.meta.url),
+  new URL("../dist/.openai/hosting.json", import.meta.url),
+);
