@@ -1,6 +1,13 @@
 node_modules/
 dist/
 .npm-cache/
+.env
+.env.local
+.env.*.local
+data/*.sqlite
+data/*.sqlite-*
+data/posters/*
+!data/posters/.gitkeep
 prototype-*.png
 design-qa-comparison-*.png
 public/qa-compare.html

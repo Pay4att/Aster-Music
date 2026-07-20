@@ -12,3 +12,4 @@ When implementing from a selected generated mock, treat that image as the source
 - Hero and album artwork use a brief 200ms hover: `translateY(-4px) scale(1.025)` with restrained soft elevation; it must not read as a dramatic zoom.
 - The next music surface should enter on scroll only after it reaches the lower viewport: slow initial travel, then a brief overshoot and settle. Respect `prefers-reduced-motion` by rendering it immediately.
 - The prototype now requires routed pages for navigation, search, profile/settings, albums, playlists, the player, and every primary action; avoid static navigation controls without destinations.
+- Authentication, favorites, and poster caching are local-first; music search uses a self-hosted NeteaseCloudMusicApi when configured and a playable public-preview fallback otherwise. Recommendation ranking is explicitly out of scope.

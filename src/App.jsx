@@ -1,437 +1,86 @@
 import {
-  ArrowLeft,
-  CaretRight,
-  Clock,
-  GearSix,
-  MagnifyingGlass,
-  Play,
-  Queue,
-  StarFour,
-  UserCircle,
+  ArrowLeft, CaretRight, Heart, MagnifyingGlass, Pause, Play, Queue,
+  SignOut, SkipBack, SkipForward, StarFour, UserCircle, X,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 
-const albums = [
-  {
-    id: "blue-hour",
-    title: "BLUE HOUR",
-    artist: "Sora Lin",
-    genre: "Alternative Pop",
-    image: "/assets/blue-hour-hero.jpg",
-    description: "在清澈的建筑回声里，把黄昏留得更久一点",
-  },
-  {
-    id: "crystal-garden",
-    title: "水晶花园",
-    artist: "Ava Miro",
-    genre: "Dream Pop",
-    image: "/assets/crystal-flower-cover.jpg",
-    description: "闪烁的合成器，像深夜里刚刚盛开的花",
-  },
-  {
-    id: "ember-afternoons",
-    title: "火星午后",
-    artist: "Cian Vale",
-    genre: "Ambient Folk",
-    image: "/assets/ember-dunes-cover.jpg",
-    description: "温热的砂砾、慢拍鼓点，和漫长的无所事事",
-  },
-  {
-    id: "moon-letter",
-    title: "月球来信",
-    artist: "Darius Moon",
-    genre: "Soul Electronica",
-    image: "/assets/moonlight-portrait-cover.jpg",
-    description: "为深夜写下的一封蓝色来信",
-  },
+const featured = [
+  { title: "BLUE HOUR", artist: "Sora Lin", image: "/assets/blue-hour-hero.jpg" },
+  { title: "水晶花园", artist: "Ava Miro", image: "/assets/crystal-flower-cover.jpg" },
+  { title: "火星午后", artist: "Cian Vale", image: "/assets/ember-dunes-cover.jpg" },
 ];
-
-const moods = [
-  { id: "morning", title: "晨光慢行", note: "不必赶路的独立民谣", album: albums[2] },
-  { id: "neon", title: "雨后霓虹", note: "把城市声音调低一点", album: albums[3] },
-  { id: "daydream", title: "白日梦游", note: "轻盈、闪烁、没有边界", album: albums[1] },
-  { id: "night", title: "深夜来信", note: "月光落下以后再开始", album: albums[0] },
-];
-
-const navItems = [
-  { label: "发现", to: "/" },
-  { label: "新歌", to: "/new" },
-  { label: "心情", to: "/moods" },
-  { label: "你的音乐库", to: "/library" },
-];
-
-function navigateTo(to) {
-  window.history.pushState({}, "", to);
-  window.dispatchEvent(new PopStateEvent("popstate"));
-  window.scrollTo({ top: 0, behavior: "smooth" });
+const authHeaders = () => ({ "Content-Type": "application/json", "x-session-token": localStorage.getItem("aster-session") || "" });
+async function readApi(response) {
+  const body = await response.text();
+  try { return body ? JSON.parse(body) : {}; } catch { return { error: "服务返回了无法识别的数据，请刷新页面后重试" }; }
 }
 
-function RouteLink({ to, className, children, onClick, ...props }) {
-  return (
-    <a
-      className={className}
-      href={to}
-      onClick={(event) => {
-        onClick?.(event);
-        if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        event.preventDefault();
-        navigateTo(to);
-      }}
-      {...props}
-    >
-      {children}
-    </a>
-  );
+function navigate(to) { window.history.pushState({}, "", to); window.dispatchEvent(new PopStateEvent("popstate")); window.scrollTo({ top: 0, behavior: "smooth" }); }
+function RouteLink({ to, children, ...props }) { return <a href={to} {...props} onClick={(event) => { props.onClick?.(event); if (!event.defaultPrevented && !event.metaKey && !event.ctrlKey) { event.preventDefault(); navigate(to); } }}>{children}</a>; }
+function useLocation() { const [value, setValue] = useState(`${location.pathname}${location.search}`); useEffect(() => { const sync = () => setValue(`${location.pathname}${location.search}`); addEventListener("popstate", sync); return () => removeEventListener("popstate", sync); }, []); return value; }
+
+function Poster({ track, className = "" }) {
+  const [loaded, setLoaded] = useState(false);
+  return <img className={`poster ${loaded ? "is-loaded" : ""} ${className}`} src={track.artwork || track.image} alt={`${track.title} 封面`} onLoad={() => setLoaded(true)} />;
 }
 
-function useLocation() {
-  const [location, setLocation] = useState(() => `${window.location.pathname}${window.location.search}`);
-
-  useEffect(() => {
-    const syncLocation = () => setLocation(`${window.location.pathname}${window.location.search}`);
-    window.addEventListener("popstate", syncLocation);
-    return () => window.removeEventListener("popstate", syncLocation);
-  }, []);
-
-  return location;
-}
-
-function SiteHeader({ pathname }) {
-  return (
-    <header className="site-header">
-      <nav className="site-nav" aria-label="主导航">
-        <RouteLink className="brand" to="/" aria-label="Aster 首页">
-          <StarFour aria-hidden="true" size={29} weight="fill" />
-          <span>Aster</span>
-        </RouteLink>
-
-        <div className="nav-links">
-          {navItems.map((item) => (
-            <RouteLink className={pathname === item.to ? "nav-link is-active" : "nav-link"} key={item.to} to={item.to}>
-              {item.label}
-            </RouteLink>
-          ))}
-        </div>
-
-        <div className="nav-actions">
-          <RouteLink aria-label="搜索音乐" className="icon-link" to="/search">
-            <MagnifyingGlass size={25} weight="regular" />
-          </RouteLink>
-          <RouteLink aria-label="个人资料" className="icon-link" to="/profile">
-            <UserCircle size={28} weight="regular" />
-          </RouteLink>
-        </div>
-      </nav>
-    </header>
-  );
-}
-
-function AlbumCard({ album, compact = false }) {
-  return (
-    <RouteLink className={compact ? "album-card compact" : "album-card"} to={`/album/${album.id}`}>
-      <img alt={`${album.title}，${album.artist}的专辑封面`} src={album.image} />
-      <span className="album-overlay">
-        <span>
-          <strong>{album.title}</strong>
-          <small>{album.artist}</small>
-        </span>
-        <span className="album-play" aria-hidden="true"><Play size={17} weight="fill" /></span>
-      </span>
-    </RouteLink>
-  );
-}
-
-function HomePage() {
-  const [musicRevealed, setMusicRevealed] = useState(false);
-  const musicSectionRef = useRef(null);
-  const featured = albums[0];
-
-  useEffect(() => {
-    const section = musicSectionRef.current;
-    if (!section || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setMusicRevealed(true);
-      return undefined;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setMusicRevealed(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "0px 0px -32% 0px", threshold: 0.05 },
-    );
-    observer.observe(section);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <>
-      <section className="intro" id="top">
-        <h1>今天，听点新的</h1>
-        <p>为你挑选的声音，刚好适合此刻</p>
-        <div className="intro-actions">
-          <RouteLink className="button button-primary" to="/now-playing?track=blue-hour">开始播放</RouteLink>
-          <RouteLink className="button button-secondary" to="/playlists">查看歌单</RouteLink>
-        </div>
-      </section>
-
-      <section className="feature-wrap" aria-label="今日首选">
-        <RouteLink className="feature-card" to={`/album/${featured.id}`}>
-          <img alt="身穿钴蓝大衣的音乐人站在现代主义混凝土建筑中" src={featured.image} />
-          <span className="feature-copy">
-            <span className="eyebrow">你的首选</span>
-            <strong>{featured.title}</strong>
-            <span>{featured.artist}</span>
-            <small>{featured.genre}</small>
-          </span>
-          <span className="feature-play" aria-hidden="true"><Play size={18} weight="fill" /></span>
-        </RouteLink>
-      </section>
-
-      <section
-        aria-label="继续探索"
-        className={musicRevealed ? "album-section scroll-reveal is-revealed" : "album-section scroll-reveal"}
-        id="more-music"
-        ref={musicSectionRef}
-      >
-        <div className="album-grid">
-          {albums.slice(1).map((album) => <AlbumCard album={album} key={album.id} />)}
-        </div>
-      </section>
-    </>
-  );
-}
-
-function PageIntro({ eyebrow, title, children }) {
-  return (
-    <section className="page-intro">
-      {eyebrow && <p>{eyebrow}</p>}
-      <h1>{title}</h1>
-      {children}
-    </section>
-  );
-}
-
-function NewReleasesPage() {
-  return (
-    <main className="inner-page">
-      <PageIntro eyebrow="本周精选" title="新歌，先听为快">
-        <span>刚刚抵达的声音，已经为你排好队</span>
-      </PageIntro>
-      <section className="editorial-grid" aria-label="新发行专辑">
-        {albums.map((album, index) => (
-          <RouteLink className={index === 0 ? "editorial-card wide" : "editorial-card"} key={album.id} to={`/album/${album.id}`}>
-            <img alt={`${album.title}专辑封面`} src={album.image} />
-            <span><small>NEW RELEASE</small><strong>{album.title}</strong><em>{album.artist}</em></span>
-          </RouteLink>
-        ))}
-      </section>
-    </main>
-  );
-}
-
-function MoodsPage() {
-  return (
-    <main className="inner-page">
-      <PageIntro eyebrow="按此刻选择" title="给耳朵，换个世界">
-        <span>选择一种心情，Aster 会从第一首开始陪你走</span>
-      </PageIntro>
-      <section className="mood-grid" aria-label="心情歌单">
-        {moods.map((mood) => (
-          <RouteLink className="mood-card" key={mood.id} to={`/playlist/${mood.id}`}>
-            <img alt={`${mood.title}的歌单封面`} src={mood.album.image} />
-            <span><strong>{mood.title}</strong><small>{mood.note}</small><CaretRight aria-hidden="true" size={21} /></span>
-          </RouteLink>
-        ))}
-      </section>
-    </main>
-  );
-}
-
-function LibraryPage() {
-  return (
-    <main className="inner-page">
-      <PageIntro eyebrow="你的收藏" title="陪你久一点的音乐">
-        <span>你保存的专辑、歌单和最近播放都在这里</span>
-      </PageIntro>
-      <section className="library-layout">
-        <div className="library-stat"><Clock aria-hidden="true" size={26} /><strong>42</strong><span>最近播放</span></div>
-        <div className="library-stat"><StarFour aria-hidden="true" size={26} /><strong>18</strong><span>已收藏专辑</span></div>
-        <div className="library-stat"><Queue aria-hidden="true" size={26} /><strong>6</strong><span>私人歌单</span></div>
-      </section>
-      <section className="collection-list" aria-label="收藏专辑">
-        {albums.map((album) => (
-          <RouteLink className="collection-row" key={album.id} to={`/album/${album.id}`}>
-            <img alt="" src={album.image} />
-            <span><strong>{album.title}</strong><small>{album.artist} · {album.genre}</small></span>
-            <CaretRight aria-hidden="true" size={22} />
-          </RouteLink>
-        ))}
-      </section>
-    </main>
-  );
-}
-
-function SearchPage({ search }) {
-  const initialQuery = new URLSearchParams(search).get("q") || "";
-  const [query, setQuery] = useState(initialQuery);
-  useEffect(() => setQuery(initialQuery), [initialQuery]);
-  const normalized = query.trim().toLowerCase();
-  const results = normalized ? albums.filter((album) => `${album.title} ${album.artist} ${album.genre}`.toLowerCase().includes(normalized)) : albums;
-
-  return (
-    <main className="inner-page search-page">
-      <PageIntro eyebrow="搜索" title="你在找什么声音？" />
-      <form className="search-form" onSubmit={(event) => { event.preventDefault(); navigateTo(`/search?q=${encodeURIComponent(query)}`); }}>
-        <MagnifyingGlass aria-hidden="true" size={23} />
-        <input aria-label="搜索歌手、专辑或歌单" autoFocus onChange={(event) => setQuery(event.target.value)} placeholder="搜索歌手、专辑或歌单" value={query} />
-        <button type="submit">搜索</button>
-      </form>
-      <p className="result-count">{normalized ? `找到 ${results.length} 个结果` : "推荐从这里开始"}</p>
-      <div className="album-grid search-results">
-        {results.map((album) => <AlbumCard album={album} key={album.id} compact />)}
+function LoginPage({ onAuth }) {
+  const [mode, setMode] = useState("login"); const [form, setForm] = useState({ name: "", email: "", password: "" }); const [error, setError] = useState(""); const [busy, setBusy] = useState(false); const [switching, setSwitching] = useState(false);
+  async function submit(event) {
+    event.preventDefault(); setError(""); setBusy(true);
+    try {
+      const response = await fetch(`/api/auth/${mode === "login" ? "login" : "register"}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const data = await readApi(response); if (!response.ok) throw new Error(data.error || "登录服务暂时不可用，请稍后重试");
+      localStorage.setItem("aster-session", data.token); onAuth(data.user);
+    } catch (err) { setError(err.message || "连接失败，请稍后重试"); } finally { setBusy(false); }
+  }
+  function switchMode() { if (switching) return; setSwitching(true); window.setTimeout(() => { setMode((value) => value === "login" ? "register" : "login"); setError(""); setSwitching(false); }, 145); }
+  return <main className="auth-page">
+    <div className="auth-art auth-art-one" /><div className="auth-art auth-art-two" />
+    <section className="auth-card">
+      <RouteLink className="brand auth-brand" to="/"><StarFour size={27} weight="fill" /> Aster</RouteLink>
+      <div className={switching ? "auth-content is-leaving" : "auth-content"} key={mode}>
+        <p className="auth-kicker">YOUR QUIET CORNER</p><h1>{mode === "login" ? "回来听歌" : "从这里开始"}</h1><p className="auth-copy">把喜欢的声音，安放在属于你的音乐库。</p>
+        <form onSubmit={submit}>
+        {mode === "register" && <label>昵称<input required value={form.name} placeholder="怎么称呼你" onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>}
+        <label>邮箱<input required type="email" autoComplete="email" value={form.email} placeholder="you@example.com" onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
+        <label>密码<input required minLength="6" type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} value={form.password} placeholder="至少 6 位" onChange={(e) => setForm({ ...form, password: e.target.value })} /></label>
+        {error && <p className="form-error">{error}</p>}<button className="auth-submit" disabled={busy}>{busy ? "正在连接…" : mode === "login" ? "登录 Aster" : "创建帐户"}</button>
+        </form>
+        <button className="switch-auth" onClick={switchMode}>{mode === "login" ? "还没有帐户？创建一个" : "已有帐户？去登录"}</button>
       </div>
-      {normalized && results.length === 0 && <p className="empty-state">没有匹配的结果试试搜索 “Sora” 或 “Moon”</p>}
-    </main>
-  );
-}
-
-function AlbumPage({ album }) {
-  if (!album) return <NotFoundPage />;
-  return (
-    <main className="detail-page">
-      <RouteLink className="back-link" to="/"><ArrowLeft size={19} /> 回到发现</RouteLink>
-      <section className="album-detail">
-        <img alt={`${album.title}专辑封面`} src={album.image} />
-        <div>
-          <p>{album.genre}</p>
-          <h1>{album.title}</h1>
-          <h2>{album.artist}</h2>
-          <span>{album.description}</span>
-          <div className="detail-actions">
-            <RouteLink className="button button-primary" to={`/now-playing?track=${album.id}`}>播放专辑</RouteLink>
-            <RouteLink className="button button-secondary" to="/library">加入音乐库</RouteLink>
-          </div>
-        </div>
-      </section>
-      <TrackList album={album} />
-    </main>
-  );
-}
-
-function TrackList({ album }) {
-  const tracks = ["开场白", "光的背面", "今天别太快", "最后一首"].map((name, index) => `${name} ${String(index + 1).padStart(2, "0")}`);
-  return (
-    <section className="track-list" aria-label={`${album.title}曲目`}>
-      {tracks.map((track, index) => (
-        <RouteLink className="track-row" key={track} to={`/now-playing?track=${album.id}&song=${index + 1}`}>
-          <span>{String(index + 1).padStart(2, "0")}</span><strong>{track}</strong><small>{index % 2 ? "3:42" : "4:08"}</small><Play aria-hidden="true" size={16} weight="fill" />
-        </RouteLink>
-      ))}
     </section>
-  );
+  </main>;
 }
 
-function PlaylistsPage() {
-  return (
-    <main className="inner-page">
-      <PageIntro eyebrow="为你编排" title="从第一首开始，刚刚好">
-        <span>每张歌单都可以继续往下走</span>
-      </PageIntro>
-      <section className="playlist-grid">
-        {moods.map((mood) => (
-          <RouteLink className="playlist-card" key={mood.id} to={`/playlist/${mood.id}`}>
-            <img alt="" src={mood.album.image} /><span><small>PLAYLIST</small><strong>{mood.title}</strong><em>{mood.note}</em></span>
-          </RouteLink>
-        ))}
-      </section>
-    </main>
-  );
+function Header({ pathname, user, onLogout }) { return <header className="site-header"><nav className="site-nav"><RouteLink className="brand" to="/"><StarFour size={28} weight="fill" /> Aster</RouteLink><div className="nav-links"><RouteLink className={pathname === "/" ? "nav-link is-active" : "nav-link"} to="/">发现</RouteLink><RouteLink className={pathname === "/search" ? "nav-link is-active" : "nav-link"} to="/search">搜索音乐</RouteLink><RouteLink className={pathname === "/library" ? "nav-link is-active" : "nav-link"} to="/library">你的音乐库</RouteLink></div><div className="nav-actions"><RouteLink className="icon-link" aria-label="搜索" to="/search"><MagnifyingGlass size={23} /></RouteLink><button className="account-button" onClick={onLogout} title="退出登录"><UserCircle size={25} /><span>{user.name}</span><SignOut size={16} /></button></div></nav></header>; }
+
+function HomePage() { return <main><section className="intro"><p className="home-overline">Aster · 你的声音角落</p><h1>今天，听点新的</h1><p>先从一段真实可试听的音乐开始</p><div className="intro-actions"><RouteLink className="button button-primary" to="/search">搜索并播放</RouteLink><RouteLink className="button button-secondary" to="/library">查看收藏</RouteLink></div></section><section className="feature-wrap"><div className="feature-card"><img src={featured[0].image} alt="BLUE HOUR 专辑封面" /><span className="feature-copy"><span className="eyebrow">ASTER SELECTS</span><strong>BLUE HOUR</strong><span>Sora Lin</span><small>在搜索中找到下一首真正可以播放的歌</small></span></div></section><section className="album-section"><p className="section-label">留给以后</p><div className="album-grid">{featured.slice(1).map((album) => <RouteLink className="album-card" to="/search" key={album.title}><img src={album.image} alt={`${album.title} 封面`} /><span className="album-overlay"><span><strong>{album.title}</strong><small>{album.artist}</small></span><Play size={19} weight="fill" /></span></RouteLink>)}</div></section></main>; }
+
+function SearchPage({ onPlay, favorites, toggleFavorite }) {
+  const initial = new URLSearchParams(location.search).get("q") || ""; const [query, setQuery] = useState(initial); const [tracks, setTracks] = useState([]); const [state, setState] = useState(initial ? "loading" : "idle"); const [source, setSource] = useState("");
+  useEffect(() => { if (initial) search(initial); }, []);
+  async function search(value = query) { const clean = value.trim(); if (!clean) return; setState("loading"); try { const response = await fetch(`/api/music/search?q=${encodeURIComponent(clean)}`); const data = await readApi(response); if (!response.ok) throw new Error(data.error || "音乐服务暂时不可用"); setTracks(data.tracks); setSource(data.source); setState("done"); navigate(`/search?q=${encodeURIComponent(clean)}`); } catch (error) { setState(error.message); } }
+  return <main className="inner-page search-page"><section className="page-intro"><p>OPEN MUSIC SEARCH</p><h1>找一首，现在就听</h1><span>搜索会自动获取并缓存海报；每首结果都有可播放的试听片段。</span></section><form className="search-form" onSubmit={(e) => { e.preventDefault(); search(); }}><MagnifyingGlass size={23} /><input autoFocus value={query} placeholder="歌名、歌手或专辑" onChange={(e) => setQuery(e.target.value)} /><button type="submit">搜索</button></form>{state === "loading" && <p className="search-status">正在寻找声音，也在下载海报…</p>}{typeof state === "string" && !["idle", "loading", "done"].includes(state) && <p className="form-error search-status">{state}</p>}{state === "done" && <><p className="result-count">{tracks.length} 首可试听的结果 · {source === "netease" ? "NetEase Cloud Music API" : "公开试听源"}</p><section className="track-results">{tracks.map((track) => <TrackCard key={track.id} track={track} onPlay={onPlay} saved={favorites.some((item) => item.id === track.id)} onFavorite={toggleFavorite} />)}</section>{!tracks.length && <p className="search-status">没有找到可试听的结果，换一个关键词试试。</p>}</>}</main>;
 }
 
-function PlaylistPage({ id }) {
-  const mood = moods.find((item) => item.id === id) || moods[0];
-  return (
-    <main className="detail-page">
-      <RouteLink className="back-link" to="/playlists"><ArrowLeft size={19} /> 所有歌单</RouteLink>
-      <section className="playlist-detail">
-        <img alt="" src={mood.album.image} />
-        <div><p>ASTER PLAYLIST</p><h1>{mood.title}</h1><span>{mood.note}</span><RouteLink className="button button-primary" to={`/now-playing?track=${mood.album.id}`}>开始播放</RouteLink></div>
-      </section>
-      <TrackList album={mood.album} />
-    </main>
-  );
-}
+function TrackCard({ track, onPlay, saved, onFavorite }) { return <article className="track-card"><Poster track={track} /><div className="track-meta"><strong>{track.title}</strong><span>{track.artist}</span><small>{track.album}</small></div><div className="track-actions"><button className="round-button play-button" aria-label={`播放 ${track.title}`} onClick={() => onPlay(track)}><Play size={20} weight="fill" /></button><button className={saved ? "round-button favorite is-saved" : "round-button favorite"} aria-label={saved ? "取消收藏" : "收藏"} onClick={() => onFavorite(track)}><Heart size={20} weight={saved ? "fill" : "regular"} /></button></div></article>; }
 
-function NowPlayingPage({ search }) {
-  const trackId = new URLSearchParams(search).get("track") || "blue-hour";
-  const album = albums.find((item) => item.id === trackId) || albums[0];
-  return (
-    <main className="now-playing-page">
-      <section className="now-playing-card">
-        <img alt={`${album.title}专辑封面`} src={album.image} />
-        <div className="playing-copy"><p>正在播放</p><h1>{album.title}</h1><span>{album.artist} · {album.genre}</span></div>
-        <div className="player-progress"><span /><i /></div>
-        <div className="player-actions">
-          <RouteLink aria-label="上一首，返回歌单" className="player-link" to="/playlists"><ArrowLeft size={24} /></RouteLink>
-          <RouteLink aria-label="查看专辑" className="player-main" to={`/album/${album.id}`}><Play size={25} weight="fill" /></RouteLink>
-          <RouteLink aria-label="下一首，回到发现" className="player-link" to="/"><CaretRight size={27} /></RouteLink>
-        </div>
-      </section>
-    </main>
-  );
-}
+function LibraryPage({ favorites, onPlay, toggleFavorite }) { return <main className="inner-page"><section className="page-intro"><p>你的收藏</p><h1>陪你久一点的音乐</h1><span>收藏保存在本机 SQLite 数据库中，下次登录仍会在这里。</span></section><section className="library-layout"><div className="library-stat"><Heart size={25} weight="fill" /><strong>{favorites.length}</strong><span>已收藏曲目</span></div><div className="library-stat"><Queue size={25} /><strong>∞</strong><span>可播放试听</span></div><div className="library-stat"><StarFour size={25} weight="fill" /><strong>Aster</strong><span>你的音乐库</span></div></section>{favorites.length ? <section className="track-results">{favorites.map((track) => <TrackCard key={track.id} track={track} onPlay={onPlay} saved onFavorite={toggleFavorite} />)}</section> : <section className="empty-library"><Heart size={34} /><h2>还没有收藏</h2><p>搜索一首歌，点亮心形按钮，它就会留在这里。</p><RouteLink className="button button-primary" to="/search">去搜索音乐</RouteLink></section>}</main>; }
 
-function ProfilePage() {
-  return (
-    <main className="inner-page profile-page">
-      <section className="profile-hero"><UserCircle size={92} weight="thin" /><p>晚上好，</p><h1>Alex</h1><span>你的下一段声音旅程，已经准备好了</span></section>
-      <div className="profile-links">
-        <RouteLink to="/library"><Queue size={25} /><span><strong>我的音乐库</strong><small>收藏与最近播放</small></span><CaretRight size={21} /></RouteLink>
-        <RouteLink to="/settings"><GearSix size={25} /><span><strong>偏好设置</strong><small>声音、动态效果与帐户</small></span><CaretRight size={21} /></RouteLink>
-      </div>
-    </main>
-  );
-}
-
-function SettingsPage() {
-  return (
-    <main className="inner-page settings-page">
-      <RouteLink className="back-link" to="/profile"><ArrowLeft size={19} /> 个人资料</RouteLink>
-      <PageIntro eyebrow="偏好设置" title="把 Aster 调成你的样子" />
-      <section className="settings-list">
-        <RouteLink to="/moods"><span><strong>心情偏好</strong><small>更新推荐的情绪方向</small></span><CaretRight size={21} /></RouteLink>
-        <RouteLink to="/playlists"><span><strong>自动播放</strong><small>选择新的接续方式</small></span><CaretRight size={21} /></RouteLink>
-        <RouteLink to="/"><span><strong>动态效果</strong><small>遵从系统的减少动态效果偏好</small></span><CaretRight size={21} /></RouteLink>
-      </section>
-    </main>
-  );
-}
-
-function NotFoundPage() {
-  return <main className="not-found"><p>404</p><h1>这里还没有音乐</h1><RouteLink className="button button-primary" to="/">回到发现</RouteLink></main>;
-}
+function Player({ track, playing, onToggle, onClose }) { if (!track) return null; return <aside className="mini-player"><Poster track={track} /><div><strong>{track.title}</strong><span>{track.artist}</span></div><button className="round-button" aria-label="上一首"><SkipBack size={19} weight="fill" /></button><button className="player-toggle" onClick={onToggle} aria-label={playing ? "暂停" : "播放"}>{playing ? <Pause size={21} weight="fill" /> : <Play size={21} weight="fill" />}</button><button className="round-button" aria-label="下一首"><SkipForward size={19} weight="fill" /></button><button className="close-player" onClick={onClose} aria-label="关闭播放器"><X size={19} /></button></aside>; }
 
 export function App() {
-  const location = useLocation();
-  const [pathname, search = ""] = location.split("?");
-  const album = albums.find((item) => item.id === pathname.split("/").pop());
-  const page = (() => {
-    if (pathname === "/") return <HomePage />;
-    if (pathname === "/new") return <NewReleasesPage />;
-    if (pathname === "/moods") return <MoodsPage />;
-    if (pathname === "/library") return <LibraryPage />;
-    if (pathname === "/search") return <SearchPage search={search} />;
-    if (pathname === "/playlists") return <PlaylistsPage />;
-    if (pathname.startsWith("/playlist/")) return <PlaylistPage id={pathname.split("/").pop()} />;
-    if (pathname.startsWith("/album/")) return <AlbumPage album={album} />;
-    if (pathname === "/now-playing") return <NowPlayingPage search={search} />;
-    if (pathname === "/profile") return <ProfilePage />;
-    if (pathname === "/settings") return <SettingsPage />;
-    return <NotFoundPage />;
-  })();
-
-  return <div className="app-shell"><SiteHeader pathname={pathname} />{page}</div>;
+  const route = useLocation(); const [pathname] = route.split("?"); const [user, setUser] = useState(null); const [ready, setReady] = useState(false); const [favorites, setFavorites] = useState([]); const [current, setCurrent] = useState(null); const [playing, setPlaying] = useState(false); const audio = useRef(null);
+  useEffect(() => { const token = localStorage.getItem("aster-session"); if (!token) return setReady(true); fetch("/api/auth/me", { headers: authHeaders() }).then((r) => r.ok ? r.json() : Promise.reject()).then((data) => { setUser(data.user); }).catch(() => localStorage.removeItem("aster-session")).finally(() => setReady(true)); }, []);
+  useEffect(() => { if (!user) return; fetch("/api/favorites", { headers: authHeaders() }).then((r) => r.json()).then((data) => setFavorites(data.tracks || [])).catch(() => {}); }, [user]);
+  useEffect(() => { if (!audio.current || !current) return; audio.current.play().then(() => setPlaying(true)).catch(() => setPlaying(false)); }, [current]);
+  function play(track) { setCurrent(track); }
+  function togglePlayback() { if (!audio.current) return; if (audio.current.paused) audio.current.play().then(() => setPlaying(true)); else { audio.current.pause(); setPlaying(false); } }
+  async function toggleFavorite(track) { const saved = favorites.some((item) => item.id === track.id); const response = await fetch(`/api/favorites${saved ? `/${encodeURIComponent(track.id)}` : ""}`, { method: saved ? "DELETE" : "POST", headers: authHeaders(), body: saved ? undefined : JSON.stringify({ track }) }); if (!response.ok) return; setFavorites((items) => saved ? items.filter((item) => item.id !== track.id) : [track, ...items]); }
+  async function logout() { await fetch("/api/auth/logout", { method: "POST", headers: authHeaders() }); localStorage.removeItem("aster-session"); setUser(null); setFavorites([]); setCurrent(null); navigate("/"); }
+  if (!ready) return <main className="loading-page"><StarFour size={34} weight="fill" /> 正在准备 Aster…</main>;
+  if (!user) return <LoginPage onAuth={setUser} />;
+  const page = pathname === "/search" ? <SearchPage onPlay={play} favorites={favorites} toggleFavorite={toggleFavorite} /> : pathname === "/library" ? <LibraryPage favorites={favorites} onPlay={play} toggleFavorite={toggleFavorite} /> : <HomePage />;
+  return <div className="app-shell"><Header pathname={pathname} user={user} onLogout={logout} /><div className="page-transition" key={route}>{page}</div><audio ref={audio} src={current?.previewUrl} onEnded={() => setPlaying(false)} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} /><Player track={current} playing={playing} onToggle={togglePlayback} onClose={() => { audio.current?.pause(); setCurrent(null); setPlaying(false); }} /></div>;
 }
