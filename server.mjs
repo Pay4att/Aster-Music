@@ -25,6 +25,14 @@ db.exec(`
     user_id INTEGER NOT NULL, track_id TEXT NOT NULL, track_json TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (user_id, track_id)
   );
+  CREATE TABLE IF NOT EXISTS playlists (
+    id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS playlist_tracks (
+    playlist_id INTEGER NOT NULL, track_id TEXT NOT NULL, track_json TEXT NOT NULL,
+    added_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (playlist_id, track_id)
+  );
 `);
 
 const app = express();
@@ -148,6 +156,46 @@ app.post("/api/favorites", (req, res) => {
   res.status(201).json({ track });
 });
 app.delete("/api/favorites/:id", (req, res) => { const user = requireUser(req, res); if (!user) return; db.prepare("DELETE FROM favorites WHERE user_id = ? AND track_id = ?").run(user.id, req.params.id); res.status(204).end(); });
+
+function playlistSummary(row) {
+  return { ...row, trackCount: Number(row.track_count || 0), cover: row.cover ? JSON.parse(row.cover).artwork || JSON.parse(row.cover).image : null };
+}
+function readPlaylist(userId, id) {
+  const row = db.prepare(`SELECT p.*, COUNT(pt.track_id) AS track_count, (SELECT track_json FROM playlist_tracks WHERE playlist_id = p.id ORDER BY added_at DESC LIMIT 1) AS cover FROM playlists p LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id WHERE p.user_id = ? AND p.id = ? GROUP BY p.id`).get(userId, id);
+  return row ? playlistSummary(row) : null;
+}
+app.get("/api/playlists", (req, res) => {
+  const user = requireUser(req, res); if (!user) return;
+  const rows = db.prepare(`SELECT p.*, COUNT(pt.track_id) AS track_count, (SELECT track_json FROM playlist_tracks WHERE playlist_id = p.id ORDER BY added_at DESC LIMIT 1) AS cover FROM playlists p LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id WHERE p.user_id = ? GROUP BY p.id ORDER BY p.created_at DESC, p.id DESC`).all(user.id);
+  res.json({ playlists: rows.map(playlistSummary) });
+});
+app.post("/api/playlists", (req, res) => {
+  const user = requireUser(req, res); if (!user) return;
+  const name = String(req.body?.name || "").trim(); const description = String(req.body?.description || "").trim();
+  if (!name || name.length > 48 || description.length > 180) return res.status(400).json({ error: "请填写 1–48 个字的歌单名，描述不超过 180 字" });
+  const result = db.prepare("INSERT INTO playlists (user_id, name, description) VALUES (?, ?, ?)").run(user.id, name, description);
+  res.status(201).json({ playlist: readPlaylist(user.id, result.lastInsertRowid) });
+});
+app.get("/api/playlists/:id", (req, res) => {
+  const user = requireUser(req, res); if (!user) return;
+  const playlist = readPlaylist(user.id, req.params.id); if (!playlist) return res.status(404).json({ error: "歌单不存在或无权访问" });
+  const tracks = db.prepare("SELECT track_json FROM playlist_tracks WHERE playlist_id = ? ORDER BY added_at DESC").all(playlist.id).map((row) => JSON.parse(row.track_json));
+  res.json({ playlist, tracks });
+});
+app.post("/api/playlists/:id/tracks", (req, res) => {
+  const user = requireUser(req, res); if (!user) return;
+  const playlist = readPlaylist(user.id, req.params.id); if (!playlist) return res.status(404).json({ error: "歌单不存在或无权访问" });
+  const track = req.body?.track;
+  if (!track?.id || !track?.title || !track?.previewUrl) return res.status(400).json({ error: "无效曲目" });
+  db.prepare("INSERT INTO playlist_tracks (playlist_id, track_id, track_json) VALUES (?, ?, ?) ON CONFLICT(playlist_id, track_id) DO UPDATE SET track_json = excluded.track_json, added_at = CURRENT_TIMESTAMP").run(playlist.id, track.id, JSON.stringify(track));
+  res.status(201).json({ playlist: readPlaylist(user.id, playlist.id) });
+});
+app.delete("/api/playlists/:id", (req, res) => {
+  const user = requireUser(req, res); if (!user) return;
+  const playlist = readPlaylist(user.id, req.params.id); if (!playlist) return res.status(404).json({ error: "歌单不存在或无权访问" });
+  db.transaction(() => { db.prepare("DELETE FROM playlist_tracks WHERE playlist_id = ?").run(playlist.id); db.prepare("DELETE FROM playlists WHERE id = ?").run(playlist.id); })();
+  res.status(204).end();
+});
 
 const vite = await createViteServer({ root, server: { middlewareMode: true }, appType: "spa" });
 app.use(vite.middlewares);
